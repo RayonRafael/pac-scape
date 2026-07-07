@@ -52,6 +52,7 @@ ESTADO_MENU      = "menu"
 ESTADO_LISTO     = "listo"
 ESTADO_JUGANDO   = "jugando"
 ESTADO_MURIENDO  = "muriendo"
+ESTADO_PAUSA     = "pausa"
 ESTADO_GAME_OVER = "game_over"
 ESTADO_VICTORIA  = "victoria"
 
@@ -82,3 +83,5 @@ DESCRIPCIONES = [
     "Pathfinding + evita fantasmas",
     "Memoriza zonas de peligro",
 ]
+
+PAUSA_OPCIONES = ["Reanudar", "Reiniciar partida", "Menu principal"]
