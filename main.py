@@ -4,7 +4,7 @@ from constantes import *
 from mapa import Mapa
 from pacman import PacMan
 from fantasma import Fantasma
-from ia import ia_perseguir, ia_asustado
+from ia import ia_blinky, ia_pinky, ia_inky, ia_clyde, ia_asustado
 
 
 def colisionan(e1, e2, radio=TILE_SIZE * 0.7):
@@ -58,6 +58,9 @@ def main():
     ]
     blinky, pinky, inky, clyde = fantasmas
 
+    # Esquina de Clyde (esquina inferior izquierda del mapa)
+    CLYDE_ESQUINA = (1, 29)
+
     estado = ESTADO_JUGANDO
     streak_comer = 0
     power_timer = 0
@@ -102,12 +105,22 @@ def main():
             elif teclas[pygame.K_RIGHT]:
                 pinky.direccion_siguiente = DERECHA
 
-            # IA fantasmas (Inky y Clyde)
-            for f in [inky, clyde]:
-                if f.asustado:
-                    ia_asustado(f, pacman.tile_col, pacman.tile_fila, mapa)
-                else:
-                    ia_perseguir(f, pacman.tile_col, pacman.tile_fila, mapa)
+            # IA Inky — flanqueador (usa posicion de Blinky)
+            if inky.asustado:
+                ia_asustado(inky, pacman.tile_col, pacman.tile_fila, mapa)
+            else:
+                ia_inky(inky, mapa,
+                        pacman.tile_col, pacman.tile_fila,
+                        pacman.direccion,
+                        blinky.tile_col, blinky.tile_fila)
+
+            # IA Clyde — cobarde
+            if clyde.asustado:
+                ia_asustado(clyde, pacman.tile_col, pacman.tile_fila, mapa)
+            else:
+                ia_clyde(clyde, mapa,
+                         pacman.tile_col, pacman.tile_fila,
+                         *CLYDE_ESQUINA)
 
             # Updates
             pacman.update(mapa)
@@ -147,7 +160,6 @@ def main():
                         power_timer = 0
                     break
 
-            # Victoria
             if mapa.puntos_restantes <= 0:
                 estado = ESTADO_VICTORIA
 
@@ -159,7 +171,6 @@ def main():
             f.render(pantalla)
         dibujar_hud(pantalla, fuente, pacman, mapa, power_timer)
 
-        # Overlays
         cx = ANCHO // 2
         cy = MAPA_FILAS * TILE_SIZE // 2
 
