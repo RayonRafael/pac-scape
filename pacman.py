@@ -16,16 +16,25 @@ class PacMan(Entidad):
         self.invincible = False
         self.tiempo_invencible = 0
         self.dificultad = DIFIC_TONTA
-        # Grid de peligro para IA maestra
         self.peligro_grid = [[0.0] * MAPA_COLS for _ in range(MAPA_FILAS)]
+        self.muriendo = False
+        self.frame_muerte = 0
+        self.comio_punto = False
+        self.comio_power = False
 
     def update(self, mapa):
+        self.comio_punto = False
+        self.comio_power = False
+
+        if self.muriendo:
+            self.frame_muerte += 1
+            return
+
         if self.invincible:
             self.tiempo_invencible -= 1
             if self.tiempo_invencible <= 0:
                 self.invincible = False
 
-        # Decaimiento del peligro (solo maestra)
         if self.dificultad == DIFIC_MAESTRA:
             for f in range(MAPA_FILAS):
                 for c in range(MAPA_COLS):
@@ -34,31 +43,41 @@ class PacMan(Entidad):
         super().update(mapa)
         puntos = mapa.comer(self.tile_col, self.tile_fila)
         self.puntuacion += puntos
+
+        if puntos > 0:
+            self.comio_punto = True
         if puntos == POWER_PTS:
+            self.comio_power = True
             self.activar_power = True
+
         if self.direccion != QUIETO:
             self.frame_boca = (self.frame_boca + 1) % 20
 
+    def iniciar_muerte(self):
+        self.muriendo = True
+        self.frame_muerte = 0
+        self.direccion = QUIETO
+
     def registrar_muerte(self):
-        """Llamar cuando PacMan muere. Incrementa peligro en zona local."""
         for df in range(-4, 5):
             for dc in range(-4, 5):
                 nf = self.tile_fila + df
                 nc = self.tile_col + dc
                 if 0 <= nf < MAPA_FILAS and 0 <= nc < MAPA_COLS:
                     dist = abs(df) + abs(dc)
-                    incremento = max(0, 0.6 - dist * 0.1)
+                    inc = max(0, 0.6 - dist * 0.1)
                     self.peligro_grid[nf][nc] = min(
-                        1.0, self.peligro_grid[nf][nc] + incremento
-                    )
+                        1.0, self.peligro_grid[nf][nc] + inc)
 
     def reiniciar_posicion(self):
         self.x = PACMAN_INICIO[0] * TILE_SIZE + TILE_SIZE // 2
         self.y = PACMAN_INICIO[1] * TILE_SIZE + TILE_SIZE // 2
         self.direccion = IZQUIERDA
         self.direccion_siguiente = QUIETO
-        self.invincible = True
-        self.tiempo_invencible = TIEMPO_INVENCIBLE
+        self.invincible = False
+        self.tiempo_invencible = 0
+        self.muriendo = False
+        self.frame_muerte = 0
 
     def reiniciar(self):
         self.reiniciar_posicion()
@@ -70,8 +89,12 @@ class PacMan(Entidad):
         self.peligro_grid = [[0.0] * MAPA_COLS for _ in range(MAPA_FILAS)]
 
     def render(self, surface):
+        if self.muriendo:
+            self._render_muerte(surface)
+            return
         if self.invincible and (self.tiempo_invencible // 5) % 2 == 0:
             return
+
         pygame.draw.circle(surface, AMARILLO, (self.x, self.y), self.radio)
         dx, dy = self.direccion
         if dx != 0 or dy != 0:
@@ -84,3 +107,17 @@ class PacMan(Entidad):
             p3 = (self.x + int(ext * math.cos(angulo + boca)),
                   self.y - int(ext * math.sin(angulo + boca)))
             pygame.draw.polygon(surface, NEGRO, [(self.x, self.y), p2, p3])
+
+    def _render_muerte(self, surface):
+        progreso = self.frame_muerte / TIEMPO_MURIENDO
+        if progreso >= 0.9:
+            return
+        r = max(1, int(self.radio * (1.0 - progreso * 0.9)))
+        pygame.draw.circle(surface, AMARILLO, (self.x, self.y), r)
+        angulo_apertura = 0.1 * math.pi + progreso * 0.85 * math.pi
+        ext = r + 2
+        p2 = (self.x + int(ext * math.cos(-angulo_apertura)),
+              self.y - int(ext * math.sin(-angulo_apertura)))
+        p3 = (self.x + int(ext * math.cos(angulo_apertura)),
+              self.y - int(ext * math.sin(angulo_apertura)))
+        pygame.draw.polygon(surface, NEGRO, [(self.x, self.y), p2, p3])
