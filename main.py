@@ -49,94 +49,130 @@ def stats_vacias(mapa):
 # MENU PRINCIPAL
 # ============================================================
 
-def dibujar_menu(pantalla, fuente, fuente_grande, fuente_chica,
+def dibujar_menu(pantalla, f_grande, f_media, f_chica,
                  sel_dificultad, num_jugadores):
     pantalla.fill(NEGRO)
     cx = ANCHO // 2
-    cy = MAPA_FILAS * TILE_SIZE // 2
+    superficie = MAPA_FILAS * TILE_SIZE
 
-    # Titulo
-    txt = fuente_grande.render("PAC-SCAPE", True, AMARILLO)
-    pantalla.blit(txt, txt.get_rect(center=(cx, cy - 150)))
-    txt = fuente.render("4 Fantasmas vs Pac-Man IA", True, (150, 150, 180))
-    pantalla.blit(txt, txt.get_rect(center=(cx, cy - 115)))
-
-    pygame.draw.line(pantalla, AZUL_PARED,
-                     (cx - 160, cy - 95), (cx + 160, cy - 95), 2)
-
-    # Jugadores (A / D)
-    y = cy - 72
-    txt = fuente_chica.render("Jugadores  (A / D)", True, (120, 120, 140))
+    # --- Titulo ---
+    y = 50
+    txt = f_grande.render("PAC-SCAPE", True, AMARILLO)
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
-    y += 22
+    y += 40
+    txt = f_chica.render("4 FANTASMAS  vs  PAC-MAN IA", True, (150, 150, 180))
+    pantalla.blit(txt, txt.get_rect(center=(cx, y)))
+
+    # --- Separador ---
+    y += 30
+    pygame.draw.line(pantalla, AZUL_PARED, (cx - 180, y), (cx + 180, y), 1)
+
+    # --- Jugadores ---
+    y += 25
+    txt = f_chica.render("JUGADORES", True, (90, 90, 120))
+    pantalla.blit(txt, txt.get_rect(center=(cx, y)))
+    y += 28
+
+    # Flechas izquierda
+    flecha_col = (150, 150, 200)
+    if num_jugadores > 1:
+        txt = f_media.render("<", True, flecha_col)
+        pantalla.blit(txt, (cx - 80, y))
+
+    # Texto central
     if num_jugadores == 1:
-        ptxt = "1 Jugador"
-        pcol = (100, 200, 255)
+        ptxt = "1 JUGADOR"
+        pcol = (100, 220, 255)
     else:
-        ptxt = "2 Jugadores"
-        pcol = (255, 200, 100)
-    txt = fuente.render(f"◄  {ptxt}  ►", True, pcol)
+        ptxt = "2 JUGADORES"
+        pcol = (255, 220, 100)
+    txt = f_media.render(ptxt, True, pcol)
+    pantalla.blit(txt, txt.get_rect(center=(cx, y + 2)))
+
+    # Flecha derecha
+    if num_jugadores < 2:
+        txt = f_media.render(">", True, flecha_col)
+        pantalla.blit(txt, (cx + 60, y))
+
+    y += 36
+    txt = f_chica.render("A / D  para cambiar", True, (70, 70, 90))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
-    # Dificultad (W / S)
-    y += 32
-    txt = fuente_chica.render("Dificultad  (W / S)", True, (120, 120, 140))
+    # --- Separador ---
+    y += 25
+    pygame.draw.line(pantalla, AZUL_PARED, (cx - 180, y), (cx + 180, y), 1)
+
+    # --- Dificultad ---
+    y += 25
+    txt = f_chica.render("DIFICULTAD PAC-MAN", True, (90, 90, 120))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
-    y += 18
+    y += 28
 
     for i, nombre in enumerate(NOMBRES_DIFICULTAD):
         col = COLORES_DIFICULTAD[i]
         if i == sel_dificultad:
-            rect = pygame.Rect(cx - 90, y - 3, 180, 26)
+            rect = pygame.Rect(cx - 100, y - 2, 200, 24)
             pygame.draw.rect(pantalla, (30, 30, 60), rect, border_radius=5)
             pygame.draw.rect(pantalla, col, rect, 2, border_radius=5)
-            txt = fuente_chica.render(f"  {nombre}", True, col)
-            pantalla.blit(txt, (cx - 82, y + 2))
+            txt = f_chica.render(f"  {nombre}", True, col)
+            pantalla.blit(txt, (cx - 92, y + 3))
         else:
-            txt = fuente_chica.render(f"  {nombre}", True, (60, 60, 80))
-            pantalla.blit(txt, (cx - 82, y + 2))
-        y += 26
+            txt = f_chica.render(f"  {nombre}", True, (50, 50, 70))
+            pantalla.blit(txt, (cx - 92, y + 3))
+        y += 28
 
-    y += 4
-    txt = fuente_chica.render(DESCRIPCIONES[sel_dificultad], True,
-                              COLORES_DIFICULTAD[sel_dificultad])
+    y += 5
+    txt = f_chica.render(DESCRIPCIONES[sel_dificultad], True,
+                         COLORES_DIFICULTAD[sel_dificultad])
+    pantalla.blit(txt, txt.get_rect(center=(cx, y)))
+    y += 6
+    txt = f_chica.render("W / S  para cambiar", True, (70, 70, 90))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
-    pygame.draw.line(pantalla, AZUL_PARED,
-                     (cx - 160, y + 18), (cx + 160, y + 18), 2)
+    # --- Separador ---
+    y += 28
+    pygame.draw.line(pantalla, AZUL_PARED, (cx - 180, y), (cx + 180, y), 1)
 
-    # Controles
-    y += 35
+    # --- Controles ---
+    y += 25
     if num_jugadores == 1:
         lineas = [
-            ("WASD → Blinky (rojo)", BLINKY_COLOR),
-            ("Pinky, Inky y Clyde son IA", (120, 120, 140)),
+            ("WASD o Flechas → Blinky (rojo)", BLINKY_COLOR),
+            ("Pinky, Inky y Clyde: IA", (120, 120, 140)),
         ]
     else:
         lineas = [
             ("P1: WASD → Blinky (rojo)", BLINKY_COLOR),
             ("P2: Flechas → Pinky (rosa)", PINKY_COLOR),
-            ("Inky y Clyde siempre son IA", (120, 120, 140)),
+            ("Inky y Clyde: siempre IA", (120, 120, 140)),
         ]
     for texto, color in lineas:
-        txt = fuente_chica.render(texto, True, color)
+        txt = f_chica.render(texto, True, color)
         pantalla.blit(txt, txt.get_rect(center=(cx, y)))
-        y += 20
+        y += 22
 
-    # Footer
-    txt = fuente_chica.render(
-        "W/S dificultad | A/D jugadores | ENTER jugar",
-        True, (80, 80, 100))
-    pantalla.blit(txt, txt.get_rect(center=(cx, cy + 170)))
-    txt = fuente_chica.render("ESC: salir", True, (50, 50, 70))
-    pantalla.blit(txt, txt.get_rect(center=(cx, cy + 190)))
+    # --- Separador ---
+    y += 18
+    pygame.draw.line(pantalla, AZUL_PARED, (cx - 180, y), (cx + 180, y), 1)
+
+    # --- Iniciar ---
+    y += 30
+    brillo = abs((pygame.time.get_ticks() % 1600) / 800 - 1)
+    r = int(255 * (0.5 + brillo * 0.5))
+    g = int(255 * (0.5 + brillo * 0.5))
+    txt = f_media.render("ENTER  para jugar", True, (r, g, 0))
+    pantalla.blit(txt, txt.get_rect(center=(cx, y)))
+
+    y += 28
+    txt = f_chica.render("ESC: salir", True, (50, 50, 70))
+    pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
 
 # ============================================================
 # PAUSA
 # ============================================================
 
-def dibujar_pausa(pantalla, fuente, fuente_grande, fuente_chica, seleccion):
+def dibujar_pausa(pantalla, f_media, f_chica, seleccion):
     overlay = pygame.Surface((ANCHO, MAPA_FILAS * TILE_SIZE))
     overlay.set_alpha(180)
     overlay.fill(NEGRO)
@@ -145,57 +181,57 @@ def dibujar_pausa(pantalla, fuente, fuente_grande, fuente_chica, seleccion):
     cx = ANCHO // 2
     cy = MAPA_FILAS * TILE_SIZE // 2
 
-    txt = fuente_grande.render("PAUSA", True, BLANCO)
-    pantalla.blit(txt, txt.get_rect(center=(cx, cy - 60)))
+    txt = f_media.render("PAUSA", True, BLANCO)
+    pantalla.blit(txt, txt.get_rect(center=(cx, cy - 55)))
 
-    y = cy - 5
+    y = cy
     for i, opcion in enumerate(PAUSA_OPCIONES):
         if i == seleccion:
-            col = AMARILLO
-            txt = fuente.render(f">  {opcion}", True, col)
+            txt = f_media.render(f">  {opcion}", True, AMARILLO)
         else:
-            col = (120, 120, 140)
-            txt = fuente.render(f"   {opcion}", True, col)
+            txt = f_media.render(f"   {opcion}", True, (120, 120, 140))
         pantalla.blit(txt, txt.get_rect(center=(cx, y)))
-        y += 36
+        y += 34
 
-    txt = fuente_chica.render(
-        "W/S mover | ENTER confirmar | ESC reanudar",
+    txt = f_chica.render(
+        "W/S elegir | ENTER confirmar | ESC/P reanudar",
         True, (80, 80, 100))
-    pantalla.blit(txt, txt.get_rect(center=(cx, cy + 110)))
+    pantalla.blit(txt, txt.get_rect(center=(cx, cy + 105)))
 
 
 # ============================================================
 # HUD
 # ============================================================
 
-def dibujar_hud(pantalla, fuente, fuente_chica, pacman, mapa,
+def dibujar_hud(pantalla, f_media, f_chica, pacman, mapa,
                 power_timer, dificultad, num_jugadores):
     y_base = MAPA_FILAS * TILE_SIZE
     pygame.draw.rect(pantalla, HUD_BG, (0, y_base, ANCHO, HUD_ALTO))
     pygame.draw.line(pantalla, AZUL_PARED, (0, y_base), (ANCHO, y_base), 2)
 
-    txt = fuente.render(f"Puntos: {pacman.puntuacion}", True, BLANCO)
-    pantalla.blit(txt, (16, y_base + 4))
-
-    txt = fuente.render(f"Rest: {mapa.puntos_restantes}", True, HUD_TEXTO)
-    pantalla.blit(txt, (ANCHO - 140, y_base + 4))
-
-    txt = fuente_chica.render(
-        f"{NOMBRES_DIFICULTAD[dificultad]}  |  {num_jugadores}J",
-        True, COLORES_DIFICULTAD[dificultad])
-    pantalla.blit(txt, (ANCHO // 2 - 35, y_base + 6))
+    # Izquierda: puntos + vidas
+    txt = f_media.render(f"Puntos: {pacman.puntuacion}", True, BLANCO)
+    pantalla.blit(txt, (12, y_base + 4))
 
     for i in range(pacman.vidas):
-        lx = 16 + i * 28
-        ly = y_base + 32
+        lx = 12 + i * 28
+        ly = y_base + 34
         pygame.draw.circle(pantalla, AMARILLO, (lx, ly), 7)
         pygame.draw.polygon(pantalla, NEGRO, [
             (lx, ly), (lx + 9, ly - 3), (lx + 9, ly + 3)])
 
+    # Centro: dificultad + jugadores
+    etiqueta = f"{NOMBRES_DIFICULTAD[dificultad]} | {num_jugadores}J"
+    txt = f_chica.render(etiqueta, True, COLORES_DIFICULTAD[dificultad])
+    pantalla.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 14)))
+
+    txt = f_chica.render(f"Rest: {mapa.puntos_restantes}", True, HUD_TEXTO)
+    pantalla.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 34)))
+
+    # Derecha: barra power
     if power_timer > 0:
-        bar_x = ANCHO - 120
-        bar_y = y_base + 30
+        bar_x = ANCHO - 115
+        bar_y = y_base + 8
         bar_w = 100
         bar_h = 8
         ratio = power_timer / TIEMPO_ASUSTADO
@@ -204,20 +240,25 @@ def dibujar_hud(pantalla, fuente, fuente_chica, pacman, mapa,
         pygame.draw.rect(pantalla, AMARILLO,
                          (bar_x, bar_y, int(bar_w * ratio), bar_h),
                          border_radius=4)
+        txt = f_chica.render("POWER", True, AMARILLO)
+        pantalla.blit(txt, (bar_x + 28, bar_y + 10))
+    else:
+        txt = f_chica.render("P: pausa", True, (50, 50, 70))
+        pantalla.blit(txt, (ANCHO - 80, y_base + 34))
 
 
 # ============================================================
 # OVERLAYS
 # ============================================================
 
-def dibujar_ready(pantalla, fuente_grande):
+def dibujar_ready(pantalla, f_media):
     cx = ANCHO // 2
     cy = MAPA_FILAS * TILE_SIZE // 2
-    txt = fuente_grande.render("READY!", True, AMARILLO)
+    txt = f_media.render("READY!", True, AMARILLO)
     pantalla.blit(txt, txt.get_rect(center=(cx, cy + 20)))
 
 
-def dibujar_stats(pantalla, fuente, fuente_chica, fuente_grande,
+def dibujar_stats(pantalla, f_media, f_chica, f_grande,
                   stats, pacman, num_jugadores, titulo, color_titulo):
     overlay = pygame.Surface((ANCHO, MAPA_FILAS * TILE_SIZE))
     overlay.set_alpha(180)
@@ -227,33 +268,29 @@ def dibujar_stats(pantalla, fuente, fuente_chica, fuente_grande,
     cx = ANCHO // 2
     cy = MAPA_FILAS * TILE_SIZE // 2
 
-    txt = fuente_grande.render(titulo, True, color_titulo)
+    txt = f_grande.render(titulo, True, color_titulo)
     pantalla.blit(txt, txt.get_rect(center=(cx, cy - 120)))
 
     y = cy - 65
     lineas = [
         (f"Puntos: {pacman.puntuacion}", BLANCO),
-        (f"Dots: {stats['dots']}/{stats['total_dots']}",
-         (180, 180, 200)),
-        (f"Power pellets: {stats['power_pellets']}/4",
-         (180, 180, 200)),
-        (f"Fantasmas comidos: {stats['fantasmas_comidos']}",
-         (180, 180, 200)),
-        (f"Dificultad: {NOMBRES_DIFICULTAD[pacman.dificultad]}  |  "
+        (f"Dots: {stats['dots']}/{stats['total_dots']}", (180, 180, 200)),
+        (f"Power pellets: {stats['power_pellets']}/4", (180, 180, 200)),
+        (f"Fantasmas comidos: {stats['fantasmas_comidos']}", (180, 180, 200)),
+        (f"Dificultad: {NOMBRES_DIFICULTAD[pacman.dificultad]} | "
          f"{num_jugadores}J",
          COLORES_DIFICULTAD[pacman.dificultad]),
-        (f"Tiempo: {format_tiempo(stats['tiempo_frames'])}",
-         (180, 180, 200)),
+        (f"Tiempo: {format_tiempo(stats['tiempo_frames'])}", (180, 180, 200)),
     ]
     for texto, color in lineas:
-        txt = fuente_chica.render(texto, True, color)
+        txt = f_chica.render(texto, True, color)
         pantalla.blit(txt, txt.get_rect(center=(cx, y)))
         y += 24
 
     y += 12
     pygame.draw.line(pantalla, AZUL_PARED, (cx - 120, y), (cx + 120, y), 1)
     y += 15
-    txt = fuente_chica.render("R: menu  |  ESC: salir", True, (100, 100, 120))
+    txt = f_chica.render("R: menu  |  ESC: salir", True, (100, 100, 120))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
 
@@ -267,9 +304,12 @@ def main():
     pantalla = pygame.display.set_mode((ANCHO, ALTO))
     pygame.display.set_caption("Pac-Scape")
     reloj = pygame.time.Clock()
-    fuente = pygame.font.Font(None, 28)
-    fuente_grande = pygame.font.Font(None, 56)
-    fuente_chica = pygame.font.Font(None, 22)
+
+    # 3 tamanos de fuente claros
+    f_grande = pygame.font.Font(None, 52)
+    f_media  = pygame.font.Font(None, 30)
+    f_chica  = pygame.font.Font(None, 22)
+
     sonidos = Sonidos()
 
     ias_pacman = {
@@ -381,17 +421,21 @@ def main():
             stats['tiempo_frames'] += 1
             teclas = pygame.key.get_pressed()
 
-            # P1 -> Blinky (WASD) siempre
-            if teclas[pygame.K_w]:
+            # ---- Blinky: WASD + Flechas en 1J, solo WASD en 2J ----
+            if teclas[pygame.K_w] or (
+                    num_jugadores == 1 and teclas[pygame.K_UP]):
                 blinky.direccion_siguiente = ARRIBA
-            elif teclas[pygame.K_s]:
+            elif teclas[pygame.K_s] or (
+                    num_jugadores == 1 and teclas[pygame.K_DOWN]):
                 blinky.direccion_siguiente = ABAJO
-            elif teclas[pygame.K_a]:
+            elif teclas[pygame.K_a] or (
+                    num_jugadores == 1 and teclas[pygame.K_LEFT]):
                 blinky.direccion_siguiente = IZQUIERDA
-            elif teclas[pygame.K_d]:
+            elif teclas[pygame.K_d] or (
+                    num_jugadores == 1 and teclas[pygame.K_RIGHT]):
                 blinky.direccion_siguiente = DERECHA
 
-            # Pinky: jugador en 2J, IA en 1J
+            # ---- Pinky: jugador en 2J, IA en 1J ----
             if num_jugadores == 2:
                 if teclas[pygame.K_UP]:
                     pinky.direccion_siguiente = ARRIBA
@@ -497,27 +541,26 @@ def main():
         pantalla.fill(NEGRO)
 
         if estado == ESTADO_MENU:
-            dibujar_menu(pantalla, fuente, fuente_grande, fuente_chica,
+            dibujar_menu(pantalla, f_grande, f_media, f_chica,
                          sel_dificultad, num_jugadores)
         else:
             mapa.render(pantalla)
             pacman.render(pantalla)
             for f in fantasmas:
                 f.render(pantalla)
-            dibujar_hud(pantalla, fuente, fuente_chica, pacman, mapa,
+            dibujar_hud(pantalla, f_media, f_chica, pacman, mapa,
                         power_timer, dificultad, num_jugadores)
 
             if estado == ESTADO_LISTO:
-                dibujar_ready(pantalla, fuente_grande)
+                dibujar_ready(pantalla, f_media)
             elif estado == ESTADO_PAUSA:
-                dibujar_pausa(pantalla, fuente, fuente_grande,
-                              fuente_chica, pausa_sel)
+                dibujar_pausa(pantalla, f_media, f_chica, pausa_sel)
             elif estado == ESTADO_GAME_OVER:
-                dibujar_stats(pantalla, fuente, fuente_chica, fuente_grande,
+                dibujar_stats(pantalla, f_media, f_chica, f_grande,
                               stats, pacman, num_jugadores,
                               "GAME OVER", (255, 0, 0))
             elif estado == ESTADO_VICTORIA:
-                dibujar_stats(pantalla, fuente, fuente_chica, fuente_grande,
+                dibujar_stats(pantalla, f_media, f_chica, f_grande,
                               stats, pacman, num_jugadores,
                               "VICTORIA!", AMARILLO)
 
