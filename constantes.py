@@ -1,5 +1,5 @@
 # ============================================================
-# constantes.py — Todos los valores tunables del juego
+# constantes.py
 # ============================================================
 
 # --- Ventana y grilla ---
@@ -7,8 +7,8 @@ TILE_SIZE   = 24
 MAPA_COLS   = 28
 MAPA_FILAS  = 31
 HUD_ALTO    = 50
-ANCHO       = MAPA_COLS * TILE_SIZE              # 672
-ALTO        = MAPA_FILAS * TILE_SIZE + HUD_ALTO  # 794
+ANCHO       = MAPA_COLS * TILE_SIZE
+ALTO        = MAPA_FILAS * TILE_SIZE + HUD_ALTO
 FPS         = 60
 
 # --- Simbolos del mapa ---
@@ -18,7 +18,7 @@ POWER  = 'o'
 VACIO  = ' '
 PUERTA = '-'
 
-# --- Colores ---
+# --- Colores generales ---
 NEGRO         = (0, 0, 0)
 PARED_RELLENO = (5, 5, 40)
 AZUL_PARED    = (33, 33, 222)
@@ -29,12 +29,43 @@ PUNTO_COLOR   = (255, 183, 174)
 HUD_BG        = (15, 15, 35)
 HUD_TEXTO     = (180, 180, 200)
 
-# --- Velocidad (px/frame, debe dividir a TILE_SIZE) ---
-VEL_PACMAN = 2
+# --- Colores de fantasmas ---
+BLINKY_COLOR  = (255, 0, 0)
+PINKY_COLOR   = (255, 184, 255)
+INKY_COLOR    = (0, 255, 255)
+CLYDE_COLOR   = (255, 184, 81)
+ASUSTADO_COLOR = (33, 33, 222)
+PUPILA_COLOR  = (33, 33, 100)
 
-# --- Direcciones como (dx, dy) en tiles ---
+# --- Velocidad (px/frame, debe dividir TILE_SIZE) ---
+VEL_PACMAN   = 2
+VEL_FANTASMA = 2
+
+# --- Direcciones (dx, dy) en tiles ---
 ARRIBA    = (0, -1)
 ABAJO     = (0, 1)
 IZQUIERDA = (-1, 0)
 DERECHA   = (1, 0)
 QUIETO    = (0, 0)
+
+# --- Duraciones (frames a 60fps) ---
+TIEMPO_ASUSTADO     = 480   # 8 seg
+TIEMPO_INVENCIBLE   = 180   # 3 seg post-muerte
+TIEMPO_DESAPARECIDO = 300   # 5 seg fantasma comido
+
+# --- Game states ---
+ESTADO_JUGANDO   = "jugando"
+ESTADO_GAME_OVER = "game_over"
+ESTADO_VICTORIA  = "victoria"
+
+# --- Posiciones iniciales (col, fila) ---
+PACMAN_INICIO = (14, 23)
+BLINKY_INICIO = (14, 5)
+PINKY_INICIO  = (6, 29)
+INKY_INICIO   = (21, 5)
+CLYDE_INICIO  = (21, 29)
+
+# --- Puntuacion ---
+PUNTO_PTS    = 10
+POWER_PTS    = 50
+FANTASMA_PTS = [200, 400, 800, 1600]
