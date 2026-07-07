@@ -37,7 +37,7 @@ CLYDE_COLOR   = (255, 184, 81)
 ASUSTADO_COLOR = (33, 33, 222)
 PUPILA_COLOR  = (33, 33, 100)
 
-# --- Velocidad (px/frame, debe dividir TILE_SIZE) ---
+# --- Velocidad (px/frame, divide TILE_SIZE) ---
 VEL_PACMAN   = 2
 VEL_FANTASMA = 2
 
@@ -49,11 +49,12 @@ DERECHA   = (1, 0)
 QUIETO    = (0, 0)
 
 # --- Duraciones (frames a 60fps) ---
-TIEMPO_ASUSTADO     = 480   # 8 seg
-TIEMPO_INVENCIBLE   = 180   # 3 seg post-muerte
-TIEMPO_DESAPARECIDO = 300   # 5 seg fantasma comido
+TIEMPO_ASUSTADO     = 480
+TIEMPO_INVENCIBLE   = 180
+TIEMPO_DESAPARECIDO = 300
 
 # --- Game states ---
+ESTADO_MENU      = "menu"
 ESTADO_JUGANDO   = "jugando"
 ESTADO_GAME_OVER = "game_over"
 ESTADO_VICTORIA  = "victoria"
@@ -69,3 +70,22 @@ CLYDE_INICIO  = (21, 29)
 PUNTO_PTS    = 10
 POWER_PTS    = 50
 FANTASMA_PTS = [200, 400, 800, 1600]
+
+# --- Dificultades Pac-Man ---
+DIFIC_TONTA     = 0
+DIFIC_TEMEROSA  = 1
+DIFIC_ASTUTA    = 2
+DIFIC_MAESTRA   = 3
+NOMBRES_DIFICULTAD = ["Tonta", "Temerosa", "Astuta", "Maestra"]
+COLORES_DIFICULTAD = [
+    (100, 255, 100),   # verde
+    (255, 255, 100),   # amarillo
+    (255, 160, 60),    # naranja
+    (255, 60, 60),     # rojo
+]
+DESCRIPCIONES = [
+    "Solo esquiva paredes",
+    "Huye si un fantasma esta cerca",
+    "Pathfinding + evita fantasmas",
+    "Memoriza zonas de peligro",
+]
