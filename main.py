@@ -23,6 +23,15 @@ def format_tiempo(frames):
     return f"{s // 60}:{s % 60:02d}"
 
 
+def escalar_a_ventana(interna, vw, vh):
+    escala = min(vw / ANCHO, vh / ALTO)
+    nw = int(ANCHO * escala)
+    nh = int(ALTO * escala)
+    x = (vw - nw) // 2
+    y = (vh - nh) // 2
+    return pygame.transform.scale(interna, (nw, nh)), x, y
+
+
 def crear_juego(dificultad):
     mapa = Mapa()
     pacman = PacMan()
@@ -53,9 +62,7 @@ def dibujar_menu(pantalla, f_grande, f_media, f_chica,
                  sel_dificultad, num_jugadores):
     pantalla.fill(NEGRO)
     cx = ANCHO // 2
-    superficie = MAPA_FILAS * TILE_SIZE
 
-    # --- Titulo ---
     y = 50
     txt = f_grande.render("PAC-SCAPE", True, AMARILLO)
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
@@ -63,33 +70,26 @@ def dibujar_menu(pantalla, f_grande, f_media, f_chica,
     txt = f_chica.render("4 FANTASMAS  vs  PAC-MAN IA", True, (150, 150, 180))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
-    # --- Separador ---
     y += 30
     pygame.draw.line(pantalla, AZUL_PARED, (cx - 180, y), (cx + 180, y), 1)
 
-    # --- Jugadores ---
     y += 25
     txt = f_chica.render("JUGADORES", True, (90, 90, 120))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
     y += 28
 
-    # Flechas izquierda
     flecha_col = (150, 150, 200)
     if num_jugadores > 1:
         txt = f_media.render("<", True, flecha_col)
         pantalla.blit(txt, (cx - 80, y))
 
-    # Texto central
     if num_jugadores == 1:
-        ptxt = "1 JUGADOR"
-        pcol = (100, 220, 255)
+        ptxt, pcol = "1 JUGADOR", (100, 220, 255)
     else:
-        ptxt = "2 JUGADORES"
-        pcol = (255, 220, 100)
+        ptxt, pcol = "2 JUGADORES", (255, 220, 100)
     txt = f_media.render(ptxt, True, pcol)
     pantalla.blit(txt, txt.get_rect(center=(cx, y + 2)))
 
-    # Flecha derecha
     if num_jugadores < 2:
         txt = f_media.render(">", True, flecha_col)
         pantalla.blit(txt, (cx + 60, y))
@@ -98,11 +98,9 @@ def dibujar_menu(pantalla, f_grande, f_media, f_chica,
     txt = f_chica.render("A / D  para cambiar", True, (70, 70, 90))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
-    # --- Separador ---
     y += 25
     pygame.draw.line(pantalla, AZUL_PARED, (cx - 180, y), (cx + 180, y), 1)
 
-    # --- Dificultad ---
     y += 25
     txt = f_chica.render("DIFICULTAD PAC-MAN", True, (90, 90, 120))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
@@ -129,11 +127,9 @@ def dibujar_menu(pantalla, f_grande, f_media, f_chica,
     txt = f_chica.render("W / S  para cambiar", True, (70, 70, 90))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
-    # --- Separador ---
     y += 28
     pygame.draw.line(pantalla, AZUL_PARED, (cx - 180, y), (cx + 180, y), 1)
 
-    # --- Controles ---
     y += 25
     if num_jugadores == 1:
         lineas = [
@@ -151,20 +147,17 @@ def dibujar_menu(pantalla, f_grande, f_media, f_chica,
         pantalla.blit(txt, txt.get_rect(center=(cx, y)))
         y += 22
 
-    # --- Separador ---
     y += 18
     pygame.draw.line(pantalla, AZUL_PARED, (cx - 180, y), (cx + 180, y), 1)
 
-    # --- Iniciar ---
     y += 30
     brillo = abs((pygame.time.get_ticks() % 1600) / 800 - 1)
-    r = int(255 * (0.5 + brillo * 0.5))
-    g = int(255 * (0.5 + brillo * 0.5))
-    txt = f_media.render("ENTER  para jugar", True, (r, g, 0))
+    v = int(255 * (0.5 + brillo * 0.5))
+    txt = f_media.render("ENTER  para jugar", True, (v, v, 0))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
     y += 28
-    txt = f_chica.render("ESC: salir", True, (50, 50, 70))
+    txt = f_chica.render("ESC: salir  |  F11: pantalla completa", True, (50, 50, 70))
     pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
 
@@ -172,7 +165,7 @@ def dibujar_menu(pantalla, f_grande, f_media, f_chica,
 # PAUSA
 # ============================================================
 
-def dibujar_pausa(pantalla, f_media, f_chica, seleccion):
+def dibujar_pausa(pantalla, f_media, f_chica, f_grande, seleccion):
     overlay = pygame.Surface((ANCHO, MAPA_FILAS * TILE_SIZE))
     overlay.set_alpha(180)
     overlay.fill(NEGRO)
@@ -181,22 +174,28 @@ def dibujar_pausa(pantalla, f_media, f_chica, seleccion):
     cx = ANCHO // 2
     cy = MAPA_FILAS * TILE_SIZE // 2
 
-    txt = f_media.render("PAUSA", True, BLANCO)
-    pantalla.blit(txt, txt.get_rect(center=(cx, cy - 55)))
+    txt = f_grande.render("PAUSA", True, BLANCO)
+    pantalla.blit(txt, txt.get_rect(center=(cx, cy - 70)))
 
-    y = cy
+    pygame.draw.line(pantalla, AZUL_PARED,
+                     (cx - 100, cy - 45), (cx + 100, cy - 45), 1)
+
+    y = cy - 20
     for i, opcion in enumerate(PAUSA_OPCIONES):
-        if i == seleccion:
-            txt = f_media.render(f">  {opcion}", True, AMARILLO)
-        else:
-            txt = f_media.render(f"   {opcion}", True, (120, 120, 140))
+        col_op = AMARILLO if i == seleccion else (120, 120, 140)
+        prefijo = "> " if i == seleccion else "  "
+        txt = f_media.render(f"{prefijo}{opcion}", True, col_op)
         pantalla.blit(txt, txt.get_rect(center=(cx, y)))
-        y += 34
+        y += 36
 
-    txt = f_chica.render(
-        "W/S elegir | ENTER confirmar | ESC/P reanudar",
-        True, (80, 80, 100))
-    pantalla.blit(txt, txt.get_rect(center=(cx, cy + 105)))
+    pygame.draw.line(pantalla, AZUL_PARED,
+                     (cx - 100, y + 5), (cx + 100, y + 5), 1)
+    y += 20
+    txt = f_chica.render("W/S elegir | ENTER confirmar", True, (80, 80, 100))
+    pantalla.blit(txt, txt.get_rect(center=(cx, y)))
+    y += 18
+    txt = f_chica.render("ESC o P para reanudar", True, (80, 80, 100))
+    pantalla.blit(txt, txt.get_rect(center=(cx, y)))
 
 
 # ============================================================
@@ -220,7 +219,7 @@ def dibujar_hud(pantalla, f_media, f_chica, pacman, mapa,
         pygame.draw.polygon(pantalla, NEGRO, [
             (lx, ly), (lx + 9, ly - 3), (lx + 9, ly + 3)])
 
-    # Centro: dificultad + jugadores
+    # Centro: dificultad + restantes
     etiqueta = f"{NOMBRES_DIFICULTAD[dificultad]} | {num_jugadores}J"
     txt = f_chica.render(etiqueta, True, COLORES_DIFICULTAD[dificultad])
     pantalla.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 14)))
@@ -228,7 +227,7 @@ def dibujar_hud(pantalla, f_media, f_chica, pacman, mapa,
     txt = f_chica.render(f"Rest: {mapa.puntos_restantes}", True, HUD_TEXTO)
     pantalla.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 34)))
 
-    # Derecha: barra power
+    # Derecha
     if power_timer > 0:
         bar_x = ANCHO - 115
         bar_y = y_base + 8
@@ -242,9 +241,22 @@ def dibujar_hud(pantalla, f_media, f_chica, pacman, mapa,
                          border_radius=4)
         txt = f_chica.render("POWER", True, AMARILLO)
         pantalla.blit(txt, (bar_x + 28, bar_y + 10))
-    else:
-        txt = f_chica.render("P: pausa", True, (50, 50, 70))
-        pantalla.blit(txt, (ANCHO - 80, y_base + 34))
+
+
+def dibujar_boton_pausa(pantalla, f_chica):
+    """Boton visual de pausa en la esquina superior derecha."""
+    bx = ANCHO - 90
+    by = 8
+    bw = 75
+    bh = 24
+    t = pygame.time.get_ticks()
+    brillo = 0.6 + 0.4 * abs((t % 2000) / 1000 - 1)
+    col = (int(100 * brillo), int(100 * brillo), int(160 * brillo))
+    rect = pygame.Rect(bx, by, bw, bh)
+    pygame.draw.rect(pantalla, (20, 20, 40), rect, border_radius=4)
+    pygame.draw.rect(pantalla, col, rect, 1, border_radius=4)
+    txt = f_chica.render("[P] Pausa", True, col)
+    pantalla.blit(txt, (bx + 10, by + 4))
 
 
 # ============================================================
@@ -278,8 +290,7 @@ def dibujar_stats(pantalla, f_media, f_chica, f_grande,
         (f"Power pellets: {stats['power_pellets']}/4", (180, 180, 200)),
         (f"Fantasmas comidos: {stats['fantasmas_comidos']}", (180, 180, 200)),
         (f"Dificultad: {NOMBRES_DIFICULTAD[pacman.dificultad]} | "
-         f"{num_jugadores}J",
-         COLORES_DIFICULTAD[pacman.dificultad]),
+         f"{num_jugadores}J", COLORES_DIFICULTAD[pacman.dificultad]),
         (f"Tiempo: {format_tiempo(stats['tiempo_frames'])}", (180, 180, 200)),
     ]
     for texto, color in lineas:
@@ -301,15 +312,20 @@ def dibujar_stats(pantalla, f_media, f_chica, f_grande,
 def main():
     pygame.mixer.pre_init(22050, -16, 1, 512)
     pygame.init()
-    pantalla = pygame.display.set_mode((ANCHO, ALTO))
-    pygame.display.set_caption("Pac-Scape")
-    reloj = pygame.time.Clock()
 
-    # 3 tamanos de fuente claros
+    # Ventana resizable
+    window_w, window_h = ANCHO, ALTO
+    pantalla = pygame.display.set_mode(
+        (window_w, window_h), pygame.RESIZABLE)
+    pygame.display.set_caption("Pac-Scape")
+
+    # Superficie interna a resolucion fija del juego
+    buffer = pygame.Surface((ANCHO, ALTO))
+
+    reloj = pygame.time.Clock()
     f_grande = pygame.font.Font(None, 52)
     f_media  = pygame.font.Font(None, 30)
     f_chica  = pygame.font.Font(None, 22)
-
     sonidos = Sonidos()
 
     ias_pacman = {
@@ -320,6 +336,7 @@ def main():
     }
     CLYDE_ESQUINA = (1, 29)
 
+    fullscreen = False
     estado = ESTADO_MENU
     sel_dificultad = DIFIC_TONTA
     num_jugadores = 2
@@ -339,7 +356,26 @@ def main():
             if evento.type == pygame.QUIT:
                 corriendo = False
 
+            # ---- Resize de ventana ----
+            elif evento.type == pygame.VIDEORESIZE:
+                if not fullscreen:
+                    window_w, window_h = evento.w, evento.h
+                    pantalla = pygame.display.set_mode(
+                        (window_w, window_h), pygame.RESIZABLE)
+
             elif evento.type == pygame.KEYDOWN:
+
+                # ---- F11: pantalla completa ----
+                if evento.key == pygame.K_F11:
+                    fullscreen = not fullscreen
+                    if fullscreen:
+                        pantalla = pygame.display.set_mode(
+                            (0, 0), pygame.FULLSCREEN)
+                        window_w, window_h = pantalla.get_size()
+                    else:
+                        pantalla = pygame.display.set_mode(
+                            (ANCHO, ALTO), pygame.RESIZABLE)
+                        window_w, window_h = ANCHO, ALTO
 
                 # ============ MENU ============
                 if estado == ESTADO_MENU:
@@ -421,7 +457,7 @@ def main():
             stats['tiempo_frames'] += 1
             teclas = pygame.key.get_pressed()
 
-            # ---- Blinky: WASD + Flechas en 1J, solo WASD en 2J ----
+            # Blinky: WASD + Flechas en 1J
             if teclas[pygame.K_w] or (
                     num_jugadores == 1 and teclas[pygame.K_UP]):
                 blinky.direccion_siguiente = ARRIBA
@@ -435,7 +471,7 @@ def main():
                     num_jugadores == 1 and teclas[pygame.K_RIGHT]):
                 blinky.direccion_siguiente = DERECHA
 
-            # ---- Pinky: jugador en 2J, IA en 1J ----
+            # Pinky: jugador en 2J, IA en 1J
             if num_jugadores == 2:
                 if teclas[pygame.K_UP]:
                     pinky.direccion_siguiente = ARRIBA
@@ -454,10 +490,8 @@ def main():
                              pacman.tile_col, pacman.tile_fila,
                              pacman.direccion)
 
-            # IA Pac-Man
             ias_pacman[dificultad](pacman, mapa, fantasmas)
 
-            # IA Inky
             if inky.asustado:
                 ia_asustado(inky, pacman.tile_col, pacman.tile_fila, mapa)
             else:
@@ -466,7 +500,6 @@ def main():
                         pacman.direccion,
                         blinky.tile_col, blinky.tile_fila)
 
-            # IA Clyde
             if clyde.asustado:
                 ia_asustado(clyde, pacman.tile_col, pacman.tile_fila, mapa)
             else:
@@ -474,7 +507,6 @@ def main():
                          pacman.tile_col, pacman.tile_fila,
                          *CLYDE_ESQUINA)
 
-            # Updates
             pacman.update(mapa)
             for f in fantasmas:
                 f.update(mapa)
@@ -537,34 +569,43 @@ def main():
                     estado = ESTADO_LISTO
                     sonidos.play_ready()
 
-        # ============ RENDER ============
-        pantalla.fill(NEGRO)
+        # ============ RENDER AL BUFFER ============
+        buffer.fill(NEGRO)
 
         if estado == ESTADO_MENU:
-            dibujar_menu(pantalla, f_grande, f_media, f_chica,
+            dibujar_menu(buffer, f_grande, f_media, f_chica,
                          sel_dificultad, num_jugadores)
         else:
-            mapa.render(pantalla)
-            pacman.render(pantalla)
+            mapa.render(buffer)
+            pacman.render(buffer)
             for f in fantasmas:
-                f.render(pantalla)
-            dibujar_hud(pantalla, f_media, f_chica, pacman, mapa,
+                f.render(buffer)
+            dibujar_hud(buffer, f_media, f_chica, pacman, mapa,
                         power_timer, dificultad, num_jugadores)
 
+            # Boton de pausa visible durante juego y listo
+            if estado in (ESTADO_JUGANDO, ESTADO_LISTO):
+                dibujar_boton_pausa(buffer, f_chica)
+
             if estado == ESTADO_LISTO:
-                dibujar_ready(pantalla, f_media)
+                dibujar_ready(buffer, f_media)
             elif estado == ESTADO_PAUSA:
-                dibujar_pausa(pantalla, f_media, f_chica, pausa_sel)
+                dibujar_pausa(buffer, f_media, f_chica, f_grande, pausa_sel)
             elif estado == ESTADO_GAME_OVER:
-                dibujar_stats(pantalla, f_media, f_chica, f_grande,
+                dibujar_stats(buffer, f_media, f_chica, f_grande,
                               stats, pacman, num_jugadores,
                               "GAME OVER", (255, 0, 0))
             elif estado == ESTADO_VICTORIA:
-                dibujar_stats(pantalla, f_media, f_chica, f_grande,
+                dibujar_stats(buffer, f_media, f_chica, f_grande,
                               stats, pacman, num_jugadores,
                               "VICTORIA!", AMARILLO)
 
+        # ============ ESCALAR A VENTANA ============
+        scaled, offx, offy = escalar_a_ventana(buffer, window_w, window_h)
+        pantalla.fill(NEGRO)
+        pantalla.blit(scaled, (offx, offy))
         pygame.display.flip()
+
         reloj.tick(FPS)
 
     pygame.quit()
