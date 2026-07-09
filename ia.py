@@ -1,3 +1,7 @@
+"""
+Inteligencia Artificial de los Fantasmas y Pac-Man.
+Aqui se encuentran los algoritmos de busqueda de caminos (Pathfinding) como BFS.
+"""
 # ============================================================
 # ia.py
 # ============================================================

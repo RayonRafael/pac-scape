@@ -1,3 +1,7 @@
+"""
+Gestor de Efectos de Sonido.
+Carga y reproduce todos los archivos de audio (.wav), incluyendo las sirenas de fondo.
+"""
 import pygame
 import array
 import math

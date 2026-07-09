@@ -1,3 +1,7 @@
+"""
+Logica de los Fantasmas.
+Maneja sus estados (Normal, Asustado, Ojos), su animacion, y la nueva habilidad de Dash (Aceleracion).
+"""
 import pygame
 from entidad import Entidad
 from constantes import *

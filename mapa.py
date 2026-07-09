@@ -1,3 +1,7 @@
+"""
+Maneja la cuadricula del nivel (Tilemap).
+Se encarga de cargar el laberinto, dibujar las paredes neon y gestionar las pildoras (dots).
+"""
 # ============================================================
 # mapa.py
 # ============================================================

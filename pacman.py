@@ -1,3 +1,7 @@
+"""
+Logica del personaje principal (Pac-Man).
+Maneja su movimiento, animacion de comer, direccion y las colisiones con el mapa.
+"""
 # ============================================================
 # pacman.py
 # ============================================================
