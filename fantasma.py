@@ -18,21 +18,30 @@ class Fantasma(Entidad):
         self.ojos_solo = False
         self.salida_delay_inicial = salida_delay
         self.timer_salida = salida_delay
+        self.es_jugador = False  # Nuevo flag para control manual
+        self.cooldown_habilidad = 0
+        self.max_cooldown = 480  # 8 segundos a 60 FPS
 
     @property
     def esperando(self):
         return self.timer_salida > 0
 
     def update(self, mapa):
+        if self.cooldown_habilidad > 0:
+            self.cooldown_habilidad -= 1
+
         if self.timer_salida > 0:
             self.timer_salida -= 1
             return
 
         if self.ojos_solo:
+            # Siempre usamos _ir_a_casa para los ojitos para que sea automatico y no se atasque
             self._ir_a_casa(mapa)
             super().update(mapa, es_fantasma=True)
-            if (self.tile_col == self.inicio_col
-                    and self.tile_fila == self.inicio_fila
+            
+            # Ampliamos un poco el margen para revivir por si el jugador se pasa de largo
+            if (abs(self.tile_col - self.inicio_col) <= 1
+                    and abs(self.tile_fila - self.inicio_fila) <= 1
                     and self.en_centro_tile()):
                 self._reaparecer_ojos()
             return
@@ -49,24 +58,58 @@ class Fantasma(Entidad):
             if self.tiempo_asustado <= 0:
                 self.asustado = False
 
+    def usar_habilidad(self, mapa):
+        """Embestida (Dash): avanza hasta 3 tiles en la direccion actual si es posible."""
+        if not self.es_jugador or not self.activo or self.ojos_solo or self.asustado or self.esperando:
+            return False
+        if self.cooldown_habilidad > 0:
+            return False
+            
+        dx, dy = self.direccion
+        if (dx, dy) == (0, 0):
+            return False
+            
+        # Avanzar tile por tile
+        tiles_dash = 3
+        for _ in range(tiles_dash):
+            nx = Entidad._wrap_col(self.tile_col + dx)
+            ny = self.tile_fila + dy
+            if mapa.es_transitable(nx, ny, es_fantasma=True):
+                self.x += dx * TILE_SIZE
+                self.y += dy * TILE_SIZE
+            else:
+                break
+                
+        # Reiniciar cooldown a 8 segundos
+        self.cooldown_habilidad = self.max_cooldown
+        return True
+
     def _ir_a_casa(self, mapa):
         if not self.en_centro_tile():
             return
-        dirs = [ARRIBA, ABAJO, IZQUIERDA, DERECHA]
-        reverso = (-self.direccion[0], -self.direccion[1])
+        
+        # Algoritmo BFS para que la IA nunca se atasque en el laberinto
+        visitados = set()
+        cola = [(self.tile_col, self.tile_fila, [])]
+        
         mejor_dir = None
-        mejor_dist = float('inf')
-        for d in dirs:
-            if d == reverso and len(dirs) > 1:
+        while cola:
+            cx, cy, path = cola.pop(0)
+            if cx == self.inicio_col and cy == self.inicio_fila:
+                if path:
+                    mejor_dir = path[0]
+                break
+                
+            if (cx, cy) in visitados:
                 continue
-            nc = Entidad._wrap_col(self.tile_col + d[0])
-            nf = self.tile_fila + d[1]
-            if not mapa.es_transitable(nc, nf, es_fantasma=True):
-                continue
-            dist = (nc - self.inicio_col) ** 2 + (nf - self.inicio_fila) ** 2
-            if dist < mejor_dist:
-                mejor_dist = dist
-                mejor_dir = d
+            visitados.add((cx, cy))
+            
+            for d in [ARRIBA, ABAJO, IZQUIERDA, DERECHA]:
+                nx = Entidad._wrap_col(cx + d[0])
+                ny = cy + d[1]
+                if mapa.es_transitable(nx, ny, es_fantasma=True):
+                    cola.append((nx, ny, path + [d]))
+                    
         if mejor_dir:
             self.direccion_siguiente = mejor_dir
 
@@ -116,6 +159,7 @@ class Fantasma(Entidad):
         self.ojos_solo = False
         self.velocidad = VEL_FANTASMA
         self.timer_salida = self.salida_delay_inicial
+        self.cooldown_habilidad = 0
 
     def render(self, surface):
         if self.ojos_solo:
