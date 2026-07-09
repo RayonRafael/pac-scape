@@ -144,3 +144,28 @@ HIGH_SCORE_FILE = "highscore.json"
 # ============================================================
 
 POPUP_DURACION = 60
+
+# ============================================================
+# NIVELES / PROGRESION
+# ============================================================
+
+ESTADO_NIVEL_COMPLETO = "nivel_completo"
+NIVEL_DURACION_TRANSICION = 150
+NIVEL_PODER_REDUCCION    = 60
+NIVEL_PODER_MINIMO       = 120
+
+NIVEL_FRUTAS = [
+    ("Cereza",   (220, 20, 60),  100),
+    ("Frutilla", (255, 80, 100), 300),
+    ("Naranja",  (255, 160, 60), 500),
+    ("Manzana",  (200, 50, 50),  700),
+]
+
+# ============================================================
+# MODO ELROY (Blinky se acelera al final del nivel)
+# ============================================================
+
+ELROY_UMBRAL_1 = 20
+ELROY_UMBRAL_2 = 10
+ELROY_VEL_1    = 3
+ELROY_VEL_2    = 4

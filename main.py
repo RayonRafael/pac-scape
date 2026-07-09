@@ -20,7 +20,6 @@ from sonidos import Sonidos
 # ============================================================
 
 class PopUp:
-    """Texto flotante que aparece al comer un fantasma o fruta."""
     def __init__(self, x, y, texto, color):
         self.x = x
         self.y = y
@@ -42,7 +41,6 @@ class PopUp:
 
 
 class Fruta:
-    """Fruta coleccionable que aparece temporalmente en el mapa."""
     def __init__(self, nombre, color, puntos, col, fila):
         self.x = col * TILE_SIZE + TILE_SIZE // 2
         self.y = fila * TILE_SIZE + TILE_SIZE // 2
@@ -61,17 +59,13 @@ class Fruta:
         if not self.activa:
             return
         r = TILE_SIZE // 2 - 3
-        # Cuerpo
         pygame.draw.circle(surface, self.color, (self.x, self.y), r)
-        # Tallo
         pygame.draw.line(surface, (0, 100, 0),
-                        (self.x, self.y - r),
-                        (self.x + 2, self.y - r - 4), 2)
-        # Brillo
+                         (self.x, self.y - r),
+                         (self.x + 2, self.y - r - 4), 2)
         sr = max(1, r // 4)
         pygame.draw.circle(surface, (255, 255, 255),
-                          (self.x - r // 3, self.y - r // 3), sr)
-        # Parpadeo cuando esta por desaparecer (ultimos 2 seg)
+                           (self.x - r // 3, self.y - r // 3), sr)
         if self.timer < 120 and (self.timer // 10) % 2 == 0:
             pygame.draw.circle(surface, NEGRO, (self.x, self.y), r + 1)
 
@@ -84,8 +78,7 @@ def cargar_high_score():
     if os.path.exists(HIGH_SCORE_FILE):
         try:
             with open(HIGH_SCORE_FILE, 'r') as f:
-                data = json.load(f)
-                return data.get("high_score", 0)
+                return json.load(f).get("high_score", 0)
         except Exception:
             pass
     return 0
@@ -117,7 +110,7 @@ def format_tiempo(frames):
 def escalar_a_ventana(interna, vw, vh):
     escala = min(vw / ANCHO, vh / ALTO)
     nw = int(ANCHO * escala)
-    nh = int(Alto_escalado := int(ALTO * escala))
+    nh = int(ALTO * escala)
     x = (vw - nw) // 2
     y = (vh - nh) // 2
     return pygame.transform.scale(interna, (nw, nh)), x, y
@@ -194,6 +187,59 @@ def dibujar_fantasma_mini(surface, cx, cy, tamano, color):
                            (ex + sign, ey + 1), max(1, r // 6))
 
 
+def crear_nivel(nivel, dificultad, idx_p1, idx_p2, pacman):
+    """Crea un nuevo nivel manteniendo el score y vidas de Pac-Man."""
+    mapa = Mapa()
+    fantasmas = []
+    for i in range(4):
+        col, fila = GHOST_INICIOS[i]
+        fantasmas.append(
+            Fantasma(col, fila, VEL_FANTASMA, GHOST_COLORES[i],
+                     GHOST_NOMBRES[i], SALIDA_DELAYS[i]))
+    fantasma_p1 = fantasmas[idx_p1]
+    fantasma_p2 = fantasmas[idx_p2] if idx_p2 is not None else None
+
+    # Reset Pac-Man posicion pero mantener estado
+    pacman.x = PACMAN_INICIO[0] * TILE_SIZE + TILE_SIZE // 2
+    pacman.y = PACMAN_INICIO[1] * TILE_SIZE + TILE_SIZE // 2
+    pacman.direccion = IZQUIERDA
+    pacman.direccion_siguiente = QUIETO
+    pacman.muriendo = False
+    pacman.frame_muerte = 0
+    pacman.activar_power = False
+    pacman.invincible = False
+    pacman.tiempo_invencible = 0
+
+    return mapa, fantasmas, fantasma_p1, fantasma_p2
+
+
+def aplicar_elroy(fantasmas, mapa):
+    """Blinky se acelera cuando quedan pocos dots (Modo Elroy)."""
+    blinky = next((f for f in fantasmas if f.nombre == "Blinky"), None)
+    if not blinky or not blinky.activo or blinky.ojos_solo:
+        return
+    if not blinky.en_centro_tile():
+        return
+    if mapa.puntos_restantes <= ELROY_UMBRAL_2:
+        blinky.velocidad = ELROY_VEL_2
+    elif mapa.puntos_restantes <= ELROY_UMBRAL_1:
+        blinky.velocidad = ELROY_VEL_1
+    else:
+        blinky.velocidad = VEL_FANTASMA
+
+
+def obtener_duracion_power(nivel):
+    """Duracion del power mode segun el nivel (disminuye progresivamente)."""
+    return max(NIVEL_PODER_MINIMO,
+               TIEMPO_ASUSTADO - (nivel - 1) * NIVEL_PODER_REDUCCION)
+
+
+def obtener_fruta_nivel(nivel):
+    """Devuelve (nombre, color, puntos) de la fruta para este nivel."""
+    idx = (nivel - 1) % len(NIVEL_FRUTAS)
+    return NIVEL_FRUTAS[idx]
+
+
 # ============================================================
 # MENU PASO 1: JUGADORES
 # ============================================================
@@ -202,28 +248,22 @@ def dibujar_menu_paso_jugadores(p, f_grande, f_media, f_chica,
                                  num_jugadores, high_score):
     p.fill(NEGRO)
     cx = ANCHO // 2
-
     y = 40
     txt = f_grande.render("PAC-SCAPE", True, AMARILLO)
     p.blit(txt, txt.get_rect(center=(cx, y)))
     y += 35
     txt = f_chica.render("4 FANTASMAS  vs  PAC-MAN IA", True, (150, 150, 180))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    # High score
     if high_score > 0:
-        y += 20
+        y += 18
         txt = f_chica.render(f"HIGH SCORE: {high_score}", True, AMARILLO)
         p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y += 25
+    y += 22
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-
-    y += 25
+    y += 22
     txt = f_chica.render("MODO DE JUEGO", True, (90, 90, 120))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y += 30
+    y += 28
     flecha_col = (150, 150, 200)
     if num_jugadores > 1:
         txt = f_grande.render("<", True, flecha_col)
@@ -236,32 +276,27 @@ def dibujar_menu_paso_jugadores(p, f_grande, f_media, f_chica,
     if num_jugadores < 2:
         txt = f_grande.render(">", True, flecha_col)
         p.blit(txt, (cx + 80, y - 5))
-
-    y += 40
+    y += 38
     txt = f_chica.render("A / D  para cambiar", True, (70, 70, 90))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y += 30
+    y += 28
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-
-    y += 25
+    y += 22
     txt = f_chica.render("Fantasmas disponibles:", True, (90, 90, 120))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-    y += 32
+    y += 30
     gap = 110
     start_x = cx - (gap * 3) // 2
     for i in range(4):
         fx = start_x + i * gap
         dibujar_fantasma_mini(p, fx, y, 36, GHOST_COLORES[i])
         txt = f_chica.render(GHOST_NOMBRES[i], True, GHOST_COLORES[i])
-        p.blit(txt, txt.get_rect(center=(fx, y + 28)))
+        p.blit(txt, txt.get_rect(center=(fx, y + 26)))
         txt = f_chica.render(GHOST_ROLES[i], True, (70, 70, 90))
-        p.blit(txt, txt.get_rect(center=(fx, y + 43)))
-
-    y += 75
+        p.blit(txt, txt.get_rect(center=(fx, y + 41)))
+    y += 70
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-
-    y += 22
+    y += 18
     if num_jugadores == 1:
         txt = f_chica.render("En el siguiente paso eliges tu fantasma",
                              True, (150, 150, 180))
@@ -269,17 +304,16 @@ def dibujar_menu_paso_jugadores(p, f_grande, f_media, f_chica,
         txt = f_chica.render("Ambos jugadores eligen su fantasma",
                              True, (150, 150, 180))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-    y += 18
+    y += 16
     txt = f_chica.render("Los otros seran controlados por IA",
                          True, (100, 100, 130))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y += 28
+    y += 24
     brillo = abs((pygame.time.get_ticks() % 1600) / 800 - 1)
     v = int(255 * (0.5 + brillo * 0.5))
     txt = f_media.render("ENTER  continuar", True, (v, v, 0))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-    y += 28
+    y += 26
     txt = f_chica.render("ESC: salir  |  F11: pantalla completa",
                          True, (50, 50, 70))
     p.blit(txt, txt.get_rect(center=(cx, y)))
@@ -293,44 +327,38 @@ def dibujar_menu_paso_fantasmas(p, f_grande, f_media, f_chica,
                                  num_jugadores, sel_p1, sel_p2):
     p.fill(NEGRO)
     cx = ANCHO // 2
-
     y = 25
     txt = f_media.render("PAC-SCAPE", True, AMARILLO)
     p.blit(txt, txt.get_rect(center=(cx, y)))
     y += 28
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-
-    y += 18
+    y += 16
     if num_jugadores == 1:
         txt = f_media.render("ELIGE TU FANTASMA", True, BLANCO)
         p.blit(txt, txt.get_rect(center=(cx, y)))
-        y += 22
+        y += 20
         txt = f_chica.render("A / D  para navegar", True, (90, 90, 120))
         p.blit(txt, txt.get_rect(center=(cx, y)))
     else:
         txt = f_media.render("ELIGE TUS FANTASMAS", True, BLANCO)
         p.blit(txt, txt.get_rect(center=(cx, y)))
-        y += 20
+        y += 18
         txt = f_chica.render("P1: A / D    P2: Flechas", True, (90, 90, 120))
         p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y += 32
+    y += 30
     box_w = 120
     box_h = 145
     gap = 15
     total_w = 4 * box_w + 3 * gap
     start_x = cx - total_w // 2 + box_w // 2
-
     for i in range(4):
         bx = start_x + i * (box_w + gap)
         by = y
         es_p1 = (i == sel_p1)
         es_p2 = (num_jugadores == 2 and i == sel_p2)
-
         bg = (25, 25, 55) if (es_p1 or es_p2) else (15, 15, 30)
         rect = pygame.Rect(bx - box_w // 2, by, box_w, box_h)
         pygame.draw.rect(p, bg, rect, border_radius=8)
-
         if es_p1:
             borde_col, grosor = BLANCO, 3
         elif es_p2:
@@ -338,14 +366,11 @@ def dibujar_menu_paso_fantasmas(p, f_grande, f_media, f_chica,
         else:
             borde_col, grosor = (40, 40, 60), 1
         pygame.draw.rect(p, borde_col, rect, grosor, border_radius=8)
-
         dibujar_fantasma_mini(p, bx, by + 48, 52, GHOST_COLORES[i])
-
         txt = f_chica.render(GHOST_NOMBRES[i], True, GHOST_COLORES[i])
         p.blit(txt, txt.get_rect(center=(bx, by + 90)))
         txt = f_chica.render(GHOST_ROLES[i], True, (90, 90, 110))
         p.blit(txt, txt.get_rect(center=(bx, by + 108)))
-
         if es_p1:
             badge_col, badge_txt = BLANCO, "P1"
         elif es_p2:
@@ -354,27 +379,24 @@ def dibujar_menu_paso_fantasmas(p, f_grande, f_media, f_chica,
             badge_col, badge_txt = (60, 60, 80), "IA"
         txt = f_chica.render(badge_txt, True, badge_col)
         p.blit(txt, txt.get_rect(center=(bx, by + 130)))
-
-    y += box_h + 15
+    y += box_h + 12
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-    y += 10
-
+    y += 8
     if num_jugadores == 1:
         txt = f_chica.render(GHOST_DETALLES[sel_p1], True,
                              GHOST_COLORES[sel_p1])
         p.blit(txt, txt.get_rect(center=(cx, y)))
     else:
-        txt = f_chica.render(
-            f"P1: {GHOST_DETALLES[sel_p1]}", True, GHOST_COLORES[sel_p1])
+        txt = f_chica.render(f"P1: {GHOST_DETALLES[sel_p1]}",
+                             True, GHOST_COLORES[sel_p1])
         p.blit(txt, txt.get_rect(center=(cx, y)))
-        y += 16
-        txt = f_chica.render(
-            f"P2: {GHOST_DETALLES[sel_p2]}", True, GHOST_COLORES[sel_p2])
+        y += 15
+        txt = f_chica.render(f"P2: {GHOST_DETALLES[sel_p2]}",
+                             True, GHOST_COLORES[sel_p2])
         p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y += 22
+    y += 20
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-    y += 12
+    y += 10
     no_controlados = []
     for i in range(4):
         if i == sel_p1:
@@ -385,10 +407,9 @@ def dibujar_menu_paso_fantasmas(p, f_grande, f_media, f_chica,
     txt = f_chica.render(
         f"IA controla: {', '.join(no_controlados)}", True, (100, 100, 130))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y += 25
+    y += 22
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-    y += 16
+    y += 14
     brillo = abs((pygame.time.get_ticks() % 1600) / 800 - 1)
     v = int(255 * (0.5 + brillo * 0.5))
     txt = f_media.render("ENTER  continuar", True, (v, v, 0))
@@ -407,29 +428,23 @@ def dibujar_menu_paso_dificultad(p, f_grande, f_media, f_chica,
                                   idx_p1, idx_p2):
     p.fill(NEGRO)
     cx = ANCHO // 2
-
     y = 30
     txt = f_media.render("PAC-SCAPE", True, AMARILLO)
     p.blit(txt, txt.get_rect(center=(cx, y)))
     y += 28
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-
-    y += 16
-    p1_col = GHOST_COLORES[idx_p1]
+    y += 14
     texto_sel = f"P1: {GHOST_NOMBRES[idx_p1]}"
     if num_jugadores == 2 and idx_p2 is not None:
         texto_sel += f"  |  P2: {GHOST_NOMBRES[idx_p2]}"
     txt = f_chica.render(texto_sel, True, (150, 150, 180))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y += 20
+    y += 18
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-
-    y += 20
+    y += 18
     txt = f_chica.render("DIFICULTAD PAC-MAN", True, (90, 90, 120))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-    y += 24
-
+    y += 22
     for i, nombre in enumerate(NOMBRES_DIFICULTAD):
         col = COLORES_DIFICULTAD[i]
         if i == sel_dificultad:
@@ -442,7 +457,6 @@ def dibujar_menu_paso_dificultad(p, f_grande, f_media, f_chica,
             txt = f_chica.render(f"  {nombre}", True, (50, 50, 70))
             p.blit(txt, (cx - 92, y + 3))
         y += 28
-
     y += 4
     txt = f_chica.render(DESCRIPCIONES[sel_dificultad], True,
                          COLORES_DIFICULTAD[sel_dificultad])
@@ -450,15 +464,14 @@ def dibujar_menu_paso_dificultad(p, f_grande, f_media, f_chica,
     y += 6
     txt = f_chica.render("W / S  para cambiar", True, (70, 70, 90))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y += 28
+    y += 26
     pygame.draw.line(p, AZUL_PARED, (cx - 190, y), (cx + 190, y), 1)
-    y += 18
+    y += 16
     brillo = abs((pygame.time.get_ticks() % 1600) / 800 - 1)
     v = int(255 * (0.5 + brillo * 0.5))
     txt = f_media.render("ENTER  para jugar", True, (v, v, 0))
     p.blit(txt, txt.get_rect(center=(cx, y)))
-    y += 26
+    y += 24
     txt = f_chica.render("ESC: volver", True, (50, 50, 70))
     p.blit(txt, txt.get_rect(center=(cx, y)))
 
@@ -497,24 +510,18 @@ def dibujar_pausa(p, f_media, f_chica, f_grande, seleccion):
 
 def dibujar_hud(p, f_media, f_chica, pacman, mapa,
                 power_timer, dificultad, num_jugadores,
-                idx_p1, idx_p2, high_score):
+                idx_p1, idx_p2, high_score, nivel):
     y_base = MAPA_FILAS * TILE_SIZE
     pygame.draw.rect(p, HUD_BG, (0, y_base, ANCHO, HUD_ALTO))
     pygame.draw.line(p, AZUL_PARED, (0, y_base), (ANCHO, y_base), 2)
-
-    # Izquierda: puntos
     txt = f_media.render(f"Puntos: {pacman.puntuacion}", True, BLANCO)
     p.blit(txt, (12, y_base + 4))
-
-    # Izquierda: vidas
     for i in range(pacman.vidas):
         lx = 12 + i * 28
         ly = y_base + 34
         pygame.draw.circle(p, AMARILLO, (lx, ly), 7)
         pygame.draw.polygon(p, NEGRO, [
             (lx, ly), (lx + 9, ly - 3), (lx + 9, ly + 3)])
-
-    # Centro: info
     p1_label = f"P1:{GHOST_NOMBRES[idx_p1][:3]}"
     if num_jugadores == 2 and idx_p2 is not None:
         p2_label = f"P2:{GHOST_NOMBRES[idx_p2][:3]}"
@@ -522,23 +529,20 @@ def dibujar_hud(p, f_media, f_chica, pacman, mapa,
     else:
         etiqueta = f"{p1_label} {NOMBRES_DIFICULTAD[dificultad][:3]}|1J"
     txt = f_chica.render(etiqueta, True, (150, 150, 180))
-    p.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 10)))
-
-    txt = f_chica.render(f"Rest: {mapa.puntos_restantes}", True, HUD_TEXTO)
-    p.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 28)))
-
-    # High score
+    p.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 8)))
+    txt = f_chica.render(f"STAGE {nivel}  Rest: {mapa.puntos_restantes}",
+                         True, HUD_TEXTO)
+    p.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 24)))
     hi_str = f"HI:{high_score}"
     txt = f_chica.render(hi_str, True, (200, 200, 100))
-    p.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 42)))
-
-    # Derecha: power bar
+    p.blit(txt, txt.get_rect(center=(ANCHO // 2, y_base + 40)))
     if power_timer > 0:
         bar_x = ANCHO - 115
         bar_y = y_base + 8
         bar_w = 100
         bar_h = 8
-        ratio = power_timer / TIEMPO_ASUSTADO
+        dur_power = obtener_duracion_power(nivel)
+        ratio = power_timer / dur_power
         pygame.draw.rect(p, (40, 40, 60),
                          (bar_x, bar_y, bar_w, bar_h), border_radius=4)
         pygame.draw.rect(p, AMARILLO,
@@ -563,45 +567,59 @@ def dibujar_boton_pausa(p, f_chica):
     p.blit(txt, (bx + 10, by + 4))
 
 
-def dibujar_ready(p, f_media, f_chica, num_jugadores, idx_p1, idx_p2):
+def dibujar_ready(p, f_media, f_chica, num_jugadores, idx_p1, idx_p2, nivel):
     cx = ANCHO // 2
     cy = MAPA_FILAS * TILE_SIZE // 2
     txt = f_media.render("READY!", True, AMARILLO)
-    p.blit(txt, txt.get_rect(center=(cx, cy - 10)))
+    p.blit(txt, txt.get_rect(center=(cx, cy - 15)))
+    txt = f_chica.render(f"STAGE {nivel}", True, (150, 150, 180))
+    p.blit(txt, txt.get_rect(center=(cx, cy + 10)))
     sub = f"P1: {GHOST_NOMBRES[idx_p1]}"
     if num_jugadores == 2 and idx_p2 is not None:
         sub += f"  |  P2: {GHOST_NOMBRES[idx_p2]}"
-    txt = f_chica.render(sub, True, (150, 150, 180))
-    p.blit(txt, txt.get_rect(center=(cx, cy + 25)))
+    txt = f_chica.render(sub, True, (120, 120, 150))
+    p.blit(txt, txt.get_rect(center=(cx, cy + 30)))
 
 
-def dibujar_stats(p, f_media, f_chica, f_grande,
-                  stats, pacman, num_jugadores, idx_p1, idx_p2,
-                  high_score, titulo, color_titulo):
+def dibujar_nivel_completo(p, f_media, f_chica, f_grande, nivel, puntuacion):
     overlay = pygame.Surface((ANCHO, MAPA_FILAS * TILE_SIZE))
     overlay.set_alpha(180)
     overlay.fill(NEGRO)
     p.blit(overlay, (0, 0))
     cx = ANCHO // 2
     cy = MAPA_FILAS * TILE_SIZE // 2
+    txt = f_grande.render(f"STAGE {nivel}", True, AMARILLO)
+    p.blit(txt, txt.get_rect(center=(cx, cy - 40)))
+    txt = f_media.render("COMPLETE!", True, BLANCO)
+    p.blit(txt, txt.get_rect(center=(cx, cy + 5)))
+    txt = f_chica.render(f"Puntos: {puntuacion}", True, (180, 180, 200))
+    p.blit(txt, txt.get_rect(center=(cx, cy + 40)))
 
+
+def dibujar_stats(p, f_media, f_chica, f_grande,
+                  stats, pacman, num_jugadores, idx_p1, idx_p2,
+                  high_score, nivel, titulo, color_titulo):
+    overlay = pygame.Surface((ANCHO, MAPA_FILAS * TILE_SIZE))
+    overlay.set_alpha(180)
+    overlay.fill(NEGRO)
+    p.blit(overlay, (0, 0))
+    cx = ANCHO // 2
+    cy = MAPA_FILAS * TILE_SIZE // 2
     txt = f_grande.render(titulo, True, color_titulo)
     p.blit(txt, txt.get_rect(center=(cx, cy - 130)))
-
-    # Nuevo record?
     es_record = pacman.puntuacion >= high_score and pacman.puntuacion > 0
     if es_record:
-        y = cy - 95
+        y = cy - 98
         t = pygame.time.get_ticks()
         brillo = 0.6 + 0.4 * abs((t % 1000) / 500 - 1)
         col_rec = (int(255 * brillo), int(255 * brillo), 0)
         txt = f_media.render("NUEVO RECORD!", True, col_rec)
         p.blit(txt, txt.get_rect(center=(cx, y)))
-
-    y = cy - 70
+    y = cy - 72
     lineas = [
         (f"Puntos: {pacman.puntuacion}", BLANCO),
         (f"High Score: {max(high_score, pacman.puntuacion)}", AMARILLO),
+        (f"Stage alcanzado: {nivel}", (180, 180, 200)),
         (f"Dots: {stats['dots']}/{stats['total_dots']}", (180, 180, 200)),
         (f"Power pellets: {stats['power_pellets']}/4", (180, 180, 200)),
         (f"Fantasmas comidos: {stats['fantasmas_comidos']}", (180, 180, 200)),
@@ -611,14 +629,13 @@ def dibujar_stats(p, f_media, f_chica, f_grande,
         (f"Tiempo: {format_tiempo(stats['tiempo_frames'])}", (180, 180, 200)),
     ]
     if num_jugadores == 2 and idx_p2 is not None:
-        lineas.insert(5, (f"P2: {GHOST_NOMBRES[idx_p2]}",
+        lineas.insert(6, (f"P2: {GHOST_NOMBRES[idx_p2]}",
                           GHOST_COLORES[idx_p2]))
     for texto, color in lineas:
         txt = f_chica.render(texto, True, color)
         p.blit(txt, txt.get_rect(center=(cx, y)))
-        y += 22
-
-    y += 10
+        y += 21
+    y += 8
     pygame.draw.line(p, AZUL_PARED, (cx - 120, y), (cx + 120, y), 1)
     y += 12
     txt = f_chica.render("R: menu  |  ESC: salir", True, (100, 100, 120))
@@ -632,12 +649,10 @@ def dibujar_stats(p, f_media, f_chica, f_grande,
 def main():
     pygame.mixer.pre_init(22050, -16, 1, 512)
     pygame.init()
-
     window_w, window_h = ANCHO, ALTO
     pantalla = pygame.display.set_mode(
         (window_w, window_h), pygame.RESIZABLE)
     pygame.display.set_caption("Pac-Scape")
-
     buffer = pygame.Surface((ANCHO, ALTO))
     reloj = pygame.time.Clock()
     f_grande = pygame.font.Font(None, 52)
@@ -662,18 +677,16 @@ def main():
     sel_ghost_p2 = 1
     sel_dificultad = DIFIC_TONTA
     pausa_sel = 0
-
     high_score = cargar_high_score()
 
     mapa = pacman = fantasmas = None
     fantasma_p1 = fantasma_p2 = None
     idx_p1 = idx_p2 = 0
+    nivel = 1
     streak_comer = 0
     power_timer = 0
     timer_estado = 0
     stats = {}
-
-    # Nuevas variables de juego
     fruta = None
     fruta_aparecio = False
     popups = []
@@ -683,13 +696,11 @@ def main():
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 corriendo = False
-
             elif evento.type == pygame.VIDEORESIZE:
                 if not fullscreen:
                     window_w, window_h = evento.w, evento.h
                     pantalla = pygame.display.set_mode(
                         (window_w, window_h), pygame.RESIZABLE)
-
             elif evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_F11:
                     fullscreen = not fullscreen
@@ -754,8 +765,10 @@ def main():
                         elif evento.key in (pygame.K_s, pygame.K_DOWN):
                             sel_dificultad = (sel_dificultad + 1) % 4
                         elif evento.key == pygame.K_RETURN:
+                            nivel = 1
                             idx_p1 = sel_ghost_p1
-                            idx_p2 = sel_ghost_p2 if num_jugadores == 2 else None
+                            idx_p2 = (sel_ghost_p2
+                                      if num_jugadores == 2 else None)
                             mapa, pacman, fantasmas, fantasma_p1, fantasma_p2 = \
                                 crear_juego(sel_dificultad, idx_p1, idx_p2)
                             streak_comer = 0
@@ -772,13 +785,18 @@ def main():
 
                 elif estado == ESTADO_LISTO:
                     if evento.key == pygame.K_ESCAPE:
+                        sonidos.detener_siren()
                         menu_paso = MENU_PASO_DIFICULTAD
                         estado = ESTADO_MENU
 
                 elif estado == ESTADO_JUGANDO:
                     if evento.key in (pygame.K_ESCAPE, pygame.K_p):
+                        sonidos.detener_siren()
                         pausa_sel = 0
                         estado = ESTADO_PAUSA
+
+                elif estado == ESTADO_NIVEL_COMPLETO:
+                    pass  # No input, solo espera el timer
 
                 elif estado == ESTADO_PAUSA:
                     if evento.key in (pygame.K_w, pygame.K_UP):
@@ -789,8 +807,7 @@ def main():
                         if pausa_sel == 0:
                             estado = ESTADO_JUGANDO
                         elif pausa_sel == 1:
-                            idx_p1 = sel_ghost_p1
-                            idx_p2 = sel_ghost_p2 if num_jugadores == 2 else None
+                            nivel = 1
                             mapa, pacman, fantasmas, fantasma_p1, fantasma_p2 = \
                                 crear_juego(sel_dificultad, idx_p1, idx_p2)
                             streak_comer = 0
@@ -803,13 +820,15 @@ def main():
                             estado = ESTADO_LISTO
                             sonidos.play_ready()
                         elif pausa_sel == 2:
+                            sonidos.detener_siren()
                             menu_paso = MENU_PASO_DIFICULTAD
                             estado = ESTADO_MENU
                     elif evento.key in (pygame.K_ESCAPE, pygame.K_p):
                         estado = ESTADO_JUGANDO
 
-                elif estado in (ESTADO_GAME_OVER, ESTADO_VICTORIA):
+                elif estado == ESTADO_GAME_OVER:
                     if evento.key == pygame.K_r:
+                        sonidos.detener_siren()
                         menu_paso = MENU_PASO_DIFICULTAD
                         estado = ESTADO_MENU
                     elif evento.key == pygame.K_ESCAPE:
@@ -853,22 +872,28 @@ def main():
                 elif teclas[pygame.K_RIGHT]:
                     fantasma_p2.direccion_siguiente = DERECHA
 
-            # IA Pac-Man
+            # IA
             ias_pacman[sel_dificultad](pacman, mapa, fantasmas)
-
-            # IA fantasmas no controlados
             for f in fantasmas:
                 if f is fantasma_p1 or f is fantasma_p2:
                     continue
                 aplicar_ia_fantasma(f, pacman, mapa, fantasmas,
                                     CLYDE_ESQUINA)
 
+            # Elroy: Blinky se acelera al final del nivel
+            aplicar_elroy(fantasmas, mapa)
+
+            # Siren de fondo
+            if power_timer > 0:
+                sonidos.iniciar_siren_power()
+            else:
+                sonidos.iniciar_siren_normal()
+
             # Updates
             pacman.update(mapa)
             for f in fantasmas:
                 f.update(mapa)
 
-            # Sonidos de comer
             if pacman.comio_punto:
                 stats['dots'] += 1
                 sonidos.chomp()
@@ -879,20 +904,20 @@ def main():
             # Power mode
             if pacman.activar_power:
                 pacman.activar_power = False
+                dur_power = obtener_duracion_power(nivel)
                 for f in fantasmas:
-                    f.poner_asustado(TIEMPO_ASUSTADO)
+                    f.poner_asustado(dur_power)
                 streak_comer = 0
-                power_timer = TIEMPO_ASUSTADO
+                power_timer = dur_power
 
             if power_timer > 0:
                 power_timer -= 1
 
-            # ---- FRUTA ----
+            # Fruta
             if not fruta_aparecio and fruta is None:
                 dots_comidos = stats['total_dots'] - mapa.puntos_restantes
                 if dots_comidos >= int(stats['total_dots'] * FRUTA_UMBRAL):
-                    tipo = random.randint(0, len(FRUTA_DATOS) - 1)
-                    nombre, color, puntos = FRUTA_DATOS[tipo]
+                    nombre, color, puntos = obtener_fruta_nivel(nivel)
                     fruta = Fruta(nombre, color, puntos, *FRUTA_POSICION)
                     fruta_aparecio = True
 
@@ -907,7 +932,7 @@ def main():
                     sonidos.play_fruta()
                     fruta = None
 
-            # ---- COLISIONES ----
+            # Colisiones
             for f in fantasmas:
                 if not f.activo or f.ojos_solo or f.esperando:
                     continue
@@ -917,7 +942,6 @@ def main():
                     pts = FANTASMA_PTS[min(streak_comer,
                                           len(FANTASMA_PTS) - 1)]
                     pacman.puntuacion += pts
-                    # Pop-up en la posicion del fantasma
                     popups.append(PopUp(f.x, f.y, f"+{pts}", BLANCO))
                     f.ser_comido()
                     streak_comer += 1
@@ -927,19 +951,39 @@ def main():
                     pacman.registrar_muerte()
                     pacman.vidas -= 1
                     pacman.iniciar_muerte()
+                    sonidos.detener_siren()
                     sonidos.play_death()
                     estado = ESTADO_MURIENDO
                     timer_estado = TIEMPO_MURIENDO
                     break
 
-            # ---- POP-UPS ----
+            # Pop-ups
             for pu in popups:
                 pu.update()
             popups = [pu for pu in popups if pu.activo]
 
-            # Victoria
+            # Nivel completado
             if mapa.puntos_restantes <= 0:
-                estado = ESTADO_VICTORIA
+                sonidos.detener_siren()
+                nivel += 1
+                estado = ESTADO_NIVEL_COMPLETO
+                timer_estado = NIVEL_DURACION_TRANSICION
+
+        elif estado == ESTADO_NIVEL_COMPLETO:
+            timer_estado -= 1
+            if timer_estado <= 0:
+                # Crear siguiente nivel
+                mapa, fantasmas, fantasma_p1, fantasma_p2 = crear_nivel(
+                    nivel, sel_dificultad, idx_p1, idx_p2, pacman)
+                streak_comer = 0
+                power_timer = 0
+                stats = stats_vacias(mapa)
+                fruta = None
+                fruta_aparecio = False
+                popups = []
+                timer_estado = TIEMPO_LISTO
+                estado = ESTADO_LISTO
+                sonidos.play_ready()
 
         elif estado == ESTADO_MURIENDO:
             pacman.update(mapa)
@@ -949,10 +993,10 @@ def main():
             timer_estado -= 1
             if timer_estado <= 0:
                 if pacman.vidas <= 0:
-                    # Guardar high score
                     if pacman.puntuacion > high_score:
                         high_score = pacman.puntuacion
                         guardar_high_score(high_score)
+                    sonidos.detener_siren()
                     estado = ESTADO_GAME_OVER
                 else:
                     pacman.reiniciar_posicion()
@@ -965,11 +1009,6 @@ def main():
                     timer_estado = TIEMPO_LISTO
                     estado = ESTADO_LISTO
                     sonidos.play_ready()
-
-        elif estado == ESTADO_VICTORIA:
-            if pacman.puntuacion > high_score:
-                high_score = pacman.puntuacion
-                guardar_high_score(high_score)
 
         # ============ RENDER ============
         buffer.fill(NEGRO)
@@ -993,36 +1032,29 @@ def main():
             pacman.render(buffer)
             for f in fantasmas:
                 f.render(buffer)
-
-            # Fruta
             if fruta and fruta.activa:
                 fruta.render(buffer)
-
-            # Pop-ups
             for pu in popups:
                 pu.render(buffer, f_popup)
-
             dibujar_hud(buffer, f_media, f_chica, pacman, mapa,
                         power_timer, sel_dificultad, num_jugadores,
-                        idx_p1, idx_p2, high_score)
-
+                        idx_p1, idx_p2, high_score, nivel)
             if estado in (ESTADO_JUGANDO, ESTADO_LISTO):
                 dibujar_boton_pausa(buffer, f_chica)
             if estado == ESTADO_LISTO:
                 dibujar_ready(buffer, f_media, f_chica,
-                              num_jugadores, idx_p1, idx_p2)
+                              num_jugadores, idx_p1, idx_p2, nivel)
             elif estado == ESTADO_PAUSA:
                 dibujar_pausa(buffer, f_media, f_chica, f_grande, pausa_sel)
+            elif estado == ESTADO_NIVEL_COMPLETO:
+                dibujar_nivel_completo(
+                    buffer, f_media, f_chica, f_grande,
+                    nivel - 1, pacman.puntuacion)
             elif estado == ESTADO_GAME_OVER:
                 dibujar_stats(buffer, f_media, f_chica, f_grande,
                               stats, pacman, num_jugadores,
-                              idx_p1, idx_p2, high_score,
+                              idx_p1, idx_p2, high_score, nivel,
                               "GAME OVER", (255, 0, 0))
-            elif estado == ESTADO_VICTORIA:
-                dibujar_stats(buffer, f_media, f_chica, f_grande,
-                              stats, pacman, num_jugadores,
-                              idx_p1, idx_p2, high_score,
-                              "VICTORIA!", AMARILLO)
 
         scaled, offx, offy = escalar_a_ventana(buffer, window_w, window_h)
         pantalla.fill(NEGRO)
